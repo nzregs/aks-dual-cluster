@@ -30,7 +30,8 @@ then
 fi
 
 # unique deployment name
-declare uniqueName="sunday"
+# if you make this too big, deployment will fail. should implement checks :-)
+declare uniqueName="youruniquenamehere"
 
 # kubernetes admin
 declare admin="aksadmin"
@@ -38,12 +39,12 @@ declare secret="YOUR_PASSWORD_HERE"
 
 #oms workspace - no azure cli support yet!
 # THIS IS MANUALLY CODED.  CAN BE FETCHED USING POWERSHELL.
-declare workspaceName="YOUR_WORKSPACE_HERE" 
+declare workspaceName="YOUR_WORKSPACE_HERE"
 declare omsWorkspaceId="YOUR_WORKSPACE_ID_HERE"
 declare workspaceRegion="YOUR_WORKSPACE_REGION_HERE"
 
 declare deploymentName="aks-${uniqueName}"
-declare acrName="${deploymentName}acr"
+declare acrName="${uniquename}acr"
 declare site1cidr="192.168.200.0/24"
 declare site1location="eastus"
 declare site2cidr="192.168.201.0/24"
@@ -85,12 +86,12 @@ docker tag nginx:stable-alpine $acrName.azurecr.io/samples/nginx
 docker push $acrName.azurecr.io/samples/nginx
 
 #create site1 and site2 VNETs
-az network vnet create --name $deploymentName-site1-vnet --location eastus --resource-group $deploymentName-site1-rg \
+az network vnet create --name $deploymentName-site1-vnet --location $site1location --resource-group $deploymentName-site1-rg \
                          --address-prefix $site1cidr --subnet-name $deploymentName-site1-subnet --subnet-prefix $site1cidr
 
 az network vnet show --name $deploymentName-site1-vnet --resource-group $deploymentName-site1-rg > $deploymentName-site1vnet.json 
 
-az network vnet create --name $deploymentName-site2-vnet --location centralus --resource-group $deploymentName-site2-rg \
+az network vnet create --name $deploymentName-site2-vnet --location $site2location --resource-group $deploymentName-site2-rg \
                          --address-prefix $site2cidr --subnet-name $deploymentName-site2-subnet --subnet-prefix $site2cidr
 
 az network vnet show --name $deploymentName-site2-vnet --resource-group $deploymentName-site2-rg > $deploymentName-site2vnet.json
@@ -175,3 +176,12 @@ if [ $?  == 0 ];
 	echo "site2 has been successfully deployed"
 fi
 
+#connect to site 1
+alias site1="az aks get-credentials --resource-group $deploymentName-site1-rg --name $deploymentName-site1 && kubectl cluster-info"
+site1
+kubectl get all
+
+#connect to site 2
+alias site2="az aks get-credentials --resource-group $deploymentName-site2-rg --name $deploymentName-site2 && kubectl cluster-info"
+site2
+kubectl get all
